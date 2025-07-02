@@ -24,7 +24,7 @@ const getCommunityPosts = async (
 export default async function CommunityPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const posts = await getCommunityPosts(id);
