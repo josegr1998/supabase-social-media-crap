@@ -1,86 +1,12 @@
-"use client";
-
-import React, { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { supabase } from "../../clients/supabase-client";
-import { useAuth } from "../../context/AuthContext";
+import React from "react";
 import { getCommunities } from "@/actions/getCommunities";
+import { createPost } from "./CreatePost.actions";
 
-type PostInput = {
-  title: string;
-  content: string;
-  image: File | null;
-  avatar_url: string;
-  community_id: string | null;
-};
-
-const createPostMutation = async ({
-  title,
-  content,
-  image,
-  avatar_url,
-  community_id,
-}: PostInput) => {
-  const imagePath = `${title}-${Date.now()}-${image?.name}`;
-
-  if (!image) return;
-
-  const { error: imageError } = await supabase.storage
-    .from("post-images")
-    .upload(imagePath, image);
-
-  if (imageError) throw new Error(imageError.message);
-
-  const { data: imageUrlData } = supabase.storage
-    .from("post-images")
-    .getPublicUrl(imagePath);
-
-  const { data, error } = await supabase.from("posts").insert({
-    title,
-    content,
-    image_url: imageUrlData.publicUrl,
-    avatar_url,
-    community_id: community_id ? Number(community_id) : null,
-  });
-
-  if (error) throw new Error(error.message);
-
-  return data;
-};
-
-export const CreatePost = () => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [communityId, setCommunityId] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  const { data: communities } = useQuery({
-    queryKey: ["communities"],
-    queryFn: getCommunities,
-  });
-
-  const {
-    mutate: createPost,
-    isPending,
-    isError,
-  } = useMutation({
-    mutationFn: createPostMutation,
-  });
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    createPost({
-      title,
-      content,
-      image,
-      avatar_url: user?.user_metadata.avatar_url,
-      community_id: communityId,
-    });
-  };
+export const CreatePost = async () => {
+  const communities = await getCommunities();
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
+    <form action={createPost} className="max-w-2xl mx-auto space-y-4">
       <div>
         <label htmlFor="title" className="block mb-2 font-medium">
           Title
@@ -90,9 +16,7 @@ export const CreatePost = () => {
           id="title"
           name="title"
           required
-          value={title}
           className="w-full border border-white/10 bg-transparent p-2 rounded"
-          onChange={(e) => setTitle(e.target.value)}
         />
       </div>
       <div>
@@ -104,9 +28,7 @@ export const CreatePost = () => {
           name="content"
           required
           rows={5}
-          value={content}
           className="w-full border border-white/10 bg-transparent p-2 rounded"
-          onChange={(e) => setContent(e.target.value)}
         />
       </div>
       <div>
@@ -120,7 +42,6 @@ export const CreatePost = () => {
           accept="image/*"
           required
           className="w-full text-gray-200"
-          onChange={(e) => setImage(e.target.files?.[0] ?? null)}
         />
       </div>
       <div>
@@ -132,7 +53,6 @@ export const CreatePost = () => {
           name="community"
           required
           className="w-full border border-white/10 bg-transparent p-2 rounded"
-          onChange={(e) => setCommunityId(e.target.value)}
         >
           <option value="">-- Choose a community --</option>
           {communities?.map((community) => (
@@ -146,9 +66,8 @@ export const CreatePost = () => {
         type="submit"
         className="bg-purple-500 text-white px-4 py-2 rounded cursor-pointer"
       >
-        {isPending ? "Creating..." : "Create Post"}
+        {"Create Post"}
       </button>
-      {isError && <p className="text-red-500"> Error creating post.</p>}
     </form>
   );
 };
