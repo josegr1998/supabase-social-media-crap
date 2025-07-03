@@ -13,8 +13,6 @@ export const LikeButton = async ({ postId, communityId }: Props) => {
 
   const data = await supabase.auth.getUser();
 
-  console.log("data ->", data);
-
   const votes = await getVotes(postId);
 
   const likes = votes?.filter((vote) => vote.vote === 1).length;

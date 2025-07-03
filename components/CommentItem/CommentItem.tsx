@@ -1,6 +1,7 @@
+"use client";
+
 import React, { useState } from "react";
 import { Comment } from "../../types/shared";
-import { useAuth } from "../../context/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "../../clients/supabase-client";
@@ -8,6 +9,7 @@ import { supabase } from "../../clients/supabase-client";
 type Props = {
   comment: Comment;
   postId: string;
+  user: User | null;
 };
 
 type NewComment = {
@@ -41,11 +43,10 @@ const createReplyMutation = async ({
   return data;
 };
 
-export const CommentItem = ({ comment, postId }: Props) => {
+export const CommentItem = ({ comment, postId, user }: Props) => {
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -157,7 +158,12 @@ export const CommentItem = ({ comment, postId }: Props) => {
           {!showReplies && (
             <div className="space-y-2">
               {comment.children.map((child) => (
-                <CommentItem key={child.id} comment={child} postId={postId} />
+                <CommentItem
+                  key={child.id}
+                  comment={child}
+                  postId={postId}
+                  user={user}
+                />
               ))}
             </div>
           )}

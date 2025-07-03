@@ -1,98 +1,18 @@
-"use client";
-
-import React, { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../../clients/supabase-client";
-import { User } from "@supabase/supabase-js";
 import { Comment } from "../../types/shared";
 import { CommentItem } from "../CommentItem/CommentItem";
-import { revalidateCommunityPage } from "@/actions/revalidateCommunityPage";
+import { createComment, getComments } from "./CommentSection.actions";
+import { createClient } from "@/clients/supabase-server";
 
 type Props = {
   postId: string;
-  communityId: string;
+  communityId?: string;
 };
 
-type NewComment = {
-  parent_comment_id: string | null;
-  postId: string;
-  user: User;
-  newCommentText: string;
-  author: string;
-};
-
-const createCommentMutation = async ({
-  parent_comment_id,
-  postId,
-  user,
-  newCommentText,
-  author,
-}: NewComment) => {
-  const { data, error } = await supabase
-    .from("comments")
-    .insert({
-      post_id: postId,
-      user_id: user.id,
-      content: newCommentText,
-      parent_comment_id: parent_comment_id || null,
-      author,
-    })
-    .select();
-
-  if (error) throw new Error(error.message);
-
-  return data;
-};
-
-const getCommentsQuery = async ({ postId }: { postId: string }) => {
-  const { data, error } = await supabase
-    .from("comments")
-    .select("*")
-    .eq("post_id", postId)
-    .order("created_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-
-  return data;
-};
-
-export const CommentSection = ({ postId, communityId }: Props) => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [newCommentText, setNewCommentText] = useState("");
-
-  const {
-    mutate: addComment,
-    isPending,
-    isError,
-  } = useMutation({
-    mutationFn: createCommentMutation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-      revalidateCommunityPage(communityId);
-    },
-  });
-
-  const { data: comments, isLoading } = useQuery<Comment[], Error>({
-    queryKey: ["comments", postId],
-    queryFn: () => getCommentsQuery({ postId }),
-  });
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user) return;
-
-    addComment({
-      parent_comment_id: null,
-      postId,
-      user,
-      newCommentText,
-      author: user.user_metadata.user_name,
-    });
-
-    setNewCommentText("");
-  };
+export const CommentSection = async ({ postId }: Props) => {
+  const comments = await getComments(postId);
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
 
   const buildCommentTree = (
     flatComments: Comment[]
@@ -125,31 +45,33 @@ export const CommentSection = ({ postId, communityId }: Props) => {
     <div className="mt-6">
       <h3 className="text-2xl font-semibold mb-4">Comments</h3>
 
-      {isLoading && <div>Loading comments...</div>}
-
       {comments && comments.length === 0 && (
         <p className="text-gray-500">No comments yet.</p>
       )}
 
       {user ? (
-        <form onSubmit={handleSubmit} className="mb-4">
+        <form action={createComment} className="mb-4">
           <textarea
+            name="newCommentText"
             rows={3}
             placeholder="Add a comment"
-            value={newCommentText}
-            onChange={(e) => setNewCommentText(e.target.value)}
             className="w-full border border-white/10 bg-transparent p-2 rounded"
+            required
           />
+          <input type="hidden" name="postId" value={postId || ""} />
+          <input
+            type="hidden"
+            name="author"
+            value={user?.user_metadata?.user_name || ""}
+          />
+          <input type="hidden" name="parent_comment_id" value={""} />
+
           <button
             type="submit"
-            disabled={!newCommentText.trim() || isPending}
             className="mt-2 bg-purple-500 text-white px-4 py-2 rounded cursor-pointer"
           >
-            {isPending ? "Posting..." : "Post"}
+            Post
           </button>
-          {isError && (
-            <p className="mb-4 text-gray-600">Error posting comment.</p>
-          )}
         </form>
       ) : (
         <p>You must be logged in to write a comment</p>
@@ -157,7 +79,12 @@ export const CommentSection = ({ postId, communityId }: Props) => {
 
       <div>
         {commentTree.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} postId={postId} />
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            postId={postId}
+            user={user}
+          />
         ))}
       </div>
     </div>
