@@ -30,15 +30,13 @@ export const createComment = async (formData: FormData) => {
     throw new Error("User not authenticated");
   }
 
-  const { data: commentData, error } = await supabase.from("comments").insert({
+  await supabase.from("comments").insert({
     post_id: postId,
     content: newCommentText,
     author,
     parent_comment_id,
     user_id: user.id,
   });
-  console.log("commentData ->", commentData);
-  console.log("error ->", error);
 
   revalidatePath(`/post/${postId}`);
 };

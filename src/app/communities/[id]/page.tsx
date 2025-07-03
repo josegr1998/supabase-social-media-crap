@@ -29,6 +29,10 @@ export default async function CommunityPage({
   const { id } = await params;
   const posts = await getCommunityPosts(id);
 
+  if (!posts?.length) {
+    return <div>No posts in this community yet.</div>;
+  }
+
   return (
     <div>
       <h2 className="text-6xl font-bold mb-6 text-center bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">

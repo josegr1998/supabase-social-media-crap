@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { Comment } from "../../types/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
-import { supabase } from "../../clients/supabase-client";
+import { createReply } from "./CommentItem.actions";
 
 type Props = {
   comment: Comment;
@@ -12,67 +11,26 @@ type Props = {
   user: User | null;
 };
 
-type NewComment = {
-  parent_comment_id: string;
-  postId: string;
-  user: User;
-  replyText: string;
-  author: string;
-};
-
-const createReplyMutation = async ({
-  parent_comment_id,
-  postId,
-  user,
-  replyText,
-  author,
-}: NewComment) => {
-  const { data, error } = await supabase
-    .from("comments")
-    .insert({
-      user_id: user.id,
-      content: replyText,
-      parent_comment_id,
-      author,
-      post_id: postId,
-    })
-    .select();
-
-  if (error) throw new Error(error.message);
-
-  return data;
-};
-
 export const CommentItem = ({ comment, postId, user }: Props) => {
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  const [replyText, setReplyText] = useState("");
-  const queryClient = useQueryClient();
 
-  const {
-    mutate: addReply,
-    isPending,
-    isError,
-  } = useMutation({
-    mutationFn: createReplyMutation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-      setIsReplying(false);
-      setReplyText("");
-    },
-  });
-
-  const handleReplySubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user) return;
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const replyText = formData.get("replyText") as string;
 
-    addReply({
-      parent_comment_id: comment.id,
-      postId,
+    await createReply({
       user,
       replyText,
-      author: user.user_metadata.user_name,
+      parent_comment_id: comment.id,
+      author: user?.user_metadata?.user_name || "",
+      postId,
     });
+
+    form.reset();
+    setIsReplying(false);
   };
 
   return (
@@ -102,18 +60,15 @@ export const CommentItem = ({ comment, postId, user }: Props) => {
           <textarea
             rows={2}
             placeholder="Add a comment"
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
+            name="replyText"
             className="w-full border border-white/10 bg-transparent p-2 rounded"
           />
           <button
             type="submit"
-            disabled={!replyText.trim()}
             className="mt-1 bg-blue-500 text-white px-3 py-1 rounded"
           >
-            {isPending ? "Posting..." : "Post Reply"}
+            Post Reply
           </button>
-          {isError && <p className="text-red-500">Error posting reply.</p>}
         </form>
       )}
 
