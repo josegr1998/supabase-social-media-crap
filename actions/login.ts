@@ -5,8 +5,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/clients/supabase-server";
 
 export async function loginWithGithub() {
-  console.log("loginWithGithub ----->");
-
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -16,12 +14,9 @@ export async function loginWithGithub() {
     },
   });
 
-  console.log("data ->", data);
-  console.log("error ->", error);
-
   if (error || !data.url) {
     redirect("/error");
   }
 
-  redirect(data.url); // GitHub OAuth URL
+  redirect(data.url);
 }

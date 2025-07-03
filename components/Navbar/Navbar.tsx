@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import React, { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 import Image from "next/image";
 import { loginWithGithub } from "@/actions/login";
+import { signOut } from "@/actions/signOut";
+import { User } from "@supabase/supabase-js";
 
-export const Navbar = () => {
+type Props = {
+  user: User | null;
+};
+
+export const Navbar = ({ user }: Props) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signInWithGithub, signOut } = useAuth();
 
   const displayName = user?.user_metadata.user_name || user?.email;
 
