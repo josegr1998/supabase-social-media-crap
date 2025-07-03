@@ -1,41 +1,15 @@
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
 import React from "react";
-import { Post } from "../../types/shared";
-import { supabase } from "../../clients/supabase-client";
 import Image from "next/image";
 import { LikeButton } from "../LikeButton/LikeButton";
 import { CommentSection } from "../CommentSection/CommentSection";
+import { getPostById } from "@/actions/getPostsById";
 
 type Props = {
   id: string;
 };
 
-export const PostDetail = ({ id }: Props) => {
-  //TODO Move this crap to the server side
-  const {
-    data: post,
-    isLoading,
-    error,
-  } = useQuery<Post, Error>({
-    queryKey: ["post", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw new Error(error.message);
-
-      return data;
-    },
-  });
-
-  if (isLoading) return <div>Loading...</div>;
-
-  if (error) return <div>Error: {error.message}</div>;
+export const PostDetail = async ({ id }: Props) => {
+  const post = await getPostById(id);
 
   if (!post) return <div>Post not found</div>;
 

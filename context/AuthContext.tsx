@@ -36,7 +36,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signInWithGithub = async () =>
-    supabase.auth.signInWithOAuth({ provider: "github" });
+    supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
 
   const signOut = async () => {
     await supabase.auth.signOut();

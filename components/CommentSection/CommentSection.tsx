@@ -97,8 +97,6 @@ export const CommentSection = ({ postId, communityId }: Props) => {
   const buildCommentTree = (
     flatComments: Comment[]
   ): (Comment & { children: Comment[] })[] => {
-    console.log("flatComments ->", flatComments);
-
     const commentMap = new Map<string, Comment & { children: Comment[] }>();
 
     const roots: (Comment & { children: Comment[] })[] = [];

@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Image from "next/image";
+import { loginWithGithub } from "@/actions/login";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -101,7 +102,7 @@ export const Navbar = () => {
               </div>
             ) : (
               <button
-                onClick={() => signInWithGithub()}
+                onClick={() => loginWithGithub()}
                 className="bg-blue-500 px-3 py-1 rounded cursor-pointer"
               >
                 Sign in with Github
